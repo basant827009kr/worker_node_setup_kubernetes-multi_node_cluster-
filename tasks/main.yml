@@ -1,0 +1,58 @@
+---
+# tasks file for worker-node
+ - name: Installing docker
+   package:
+     name: docker
+     state: present
+
+ - name: starting docker services
+   service:
+     name: docker
+     state: started
+     enabled: yes
+
+ - name: configuring yum for kubeadm software
+   yum_repository:
+     baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+     name: kubernetes
+     gpgcheck: yes
+     enabled: yes
+     repo_gpgcheck: yes
+     gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+     description: software for kubeadm
+     exclude:
+     - kubelet
+     - kubeadm
+     - kubectl
+
+ - name: Installing kubeadm
+   yum:
+     name: kubeadm
+     disable_excludes: kubernetes
+
+ - name: Starting kubelet service
+   service:
+     name: kubelet
+     state: started
+     enabled: yes
+
+ - name: copying daemon.json
+   copy:
+     src: daemon.json
+     dest: /etc/docker
+   register: y
+
+ - name: restarting docker
+   service:
+     name: docker
+     state: restarted
+   when: y.changed == true
+
+ - name: installing iproute-tc
+   package:
+     name: iproute-tc
+     state: present
+
+ - name: running shell command
+   shell: "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"
+
